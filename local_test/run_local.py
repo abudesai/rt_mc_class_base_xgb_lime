@@ -158,14 +158,15 @@ def load_and_test_algo():
     predictions = predictor.predict_proba(test_data)
     # save predictions
     utils.save_dataframe(predictions, testing_outputs_path, "test_predictions.csv")
-    # score the results
-    test_key = get_test_key()
-    results = score(test_key, predictions, data_schema)
     # local explanations
-    local_explanations = None
     if hasattr(predictor, "has_local_explanations"):
         # will only return explanations for max 5 rows - will select the top 5 if given more rows
         local_explanations = predictor.explain_local(test_data)
+    else:
+        local_explanations = None
+    # score the results
+    test_key = get_test_key()
+    results = score(test_key, predictions, data_schema)
     print("done with predictions")
     return results, local_explanations
 
@@ -253,6 +254,7 @@ def save_test_outputs(results, run_hpt, dataset_name):
     df.to_csv(file_path_and_name, index=False)
 
 
+
 def save_local_explanations(local_explanations, dataset_name):
     if local_explanations is not None:
         fname = f"{model_name}_{dataset_name}_local_explanations.json"
@@ -288,10 +290,9 @@ def run_train_and_test(dataset_name, run_hpt, num_hpt_trials):
     train_and_save_algo()  # train the model and save
 
     # set_scoring_vars(dataset_name=dataset_name)
-    (
-        results,
-        local_explanations,
-    ) = load_and_test_algo()  # load the trained model and get predictions on test data
+    results, local_explanations = (
+        load_and_test_algo()
+    )  # load the trained model and get predictions on test data
 
     end = time.time()
     elapsed_time_in_minutes = np.round((end - start) / 60.0, 2)
@@ -334,9 +335,7 @@ if __name__ == "__main__":
         for dataset_name in datasets:
             print("-" * 60)
             print(f"Running dataset {dataset_name}")
-            results, local_explanations = run_train_and_test(
-                dataset_name, run_hpt, num_hpt_trials
-            )
+            results, local_explanations = run_train_and_test(dataset_name, run_hpt, num_hpt_trials)
             save_test_outputs(results, run_hpt, dataset_name)
             save_local_explanations(local_explanations, dataset_name)
             all_results.append(results)
